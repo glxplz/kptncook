@@ -20,6 +20,9 @@ from .models import Recipe
 from .paprika import PaprikaExporter
 from .repositories import RecipeRepository
 
+from pygrocy2 import GrocyApiClient
+
+
 __all__ = [
     "list_kptncook_today",
     "save_todays_recipes",
@@ -32,7 +35,7 @@ __all__ = [
     "export_recipes_to_paprika",
 ]
 
-__version__ = "0.0.22"
+__version__ = "0.1.0"
 cli = typer.Typer()
 
 
@@ -61,6 +64,10 @@ def save_todays_recipes():
 def get_mealie_client() -> MealieApiClient:
     client = MealieApiClient(settings.mealie_url)
     client.login(settings.mealie_username, settings.mealie_password)
+    return client
+
+def get_grocy_client() -> GrocyApiClient:
+    client = GrocyApiClient(base_url=settings.grocy_url, api_key=settings.grocy_api_key, verify_ssl=True)
     return client
 
 
@@ -109,6 +116,40 @@ def sync_with_mealie():
     """
     try:
         client = get_mealie_client()
+    except Exception as e:
+        rprint(f"Could not login to mealie: {e}")
+        sys.exit(1)
+    kptncook_recipes_from_mealie = get_kptncook_recipes_from_mealie(client)
+    recipes = get_kptncook_recipes_from_repository()
+    kptncook_recipes_from_repository = [kptncook_to_mealie(r) for r in recipes]
+    ids_in_mealie = {r.extras["kptncook_id"] for r in kptncook_recipes_from_mealie}
+    ids_from_api = {r.extras["kptncook_id"] for r in kptncook_recipes_from_repository}
+    ids_to_add = ids_from_api - ids_in_mealie
+    recipes_to_add = []
+    for recipe in kptncook_recipes_from_repository:
+        if recipe.extras.get("kptncook_id") in ids_to_add:
+            recipes_to_add.append(recipe)
+    created_slugs = []
+    for recipe in recipes_to_add:
+        try:
+            created = client.create_recipe(recipe)
+            created_slugs.append(created.slug)
+        except httpx.HTTPStatusError as e:
+            if (
+                e.response.json().get("detail", {}).get("message")
+                == "Recipe already exists"
+            ):
+                continue
+    rprint(f"Created {len(created_slugs)} recipes")
+    
+
+@cli.command(name="sync-with-grocy")
+def sync_with_grocy():
+    """
+    Sync locally saved recipes with grocy.
+    """
+    try:
+        client = get_grocy_client()
     except Exception as e:
         rprint(f"Could not login to mealie: {e}")
         sys.exit(1)
@@ -243,8 +284,7 @@ def export_recipes_to_paprika(_id: OptionalId = typer.Argument(None)):
         "\n The data was exported to '%s'. Open the export file with the Paprika App.\n"
         % filename
     )
-
-
+    
 def get_recipe_by_id(_id: str):
     parsed = parse_id(_id)
     if parsed is None:

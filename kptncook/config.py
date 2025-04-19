@@ -18,9 +18,12 @@ class Settings(BaseSettings):
     kptncook_api_key: str
     kptncook_access_token: str | None = None
     kptncook_api_url: AnyHttpUrl = AnyHttpUrl("https://mobile.kptncook.com")
-    mealie_url: AnyHttpUrl = AnyHttpUrl("http://localhost:9000/api")
-    mealie_username: str
-    mealie_password: str
+    mealie_url: AnyHttpUrl | None = AnyHttpUrl("http://localhost:9000/api")
+    mealie_username: str | None
+    mealie_password: str | None
+    grocy_url: AnyHttpUrl | None = AnyHttpUrl("http://localhost")
+    grocy_port: int | None = 9283
+    grocy_api_ket: str | None = None
 
     @field_validator("root", mode="before")
     def root_must_exist(cls, path: Path) -> Path:
