@@ -1,7 +1,3 @@
-[build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
-
 [project]
 name = "kptncook"
 authors = [
@@ -28,17 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = [
-    "httpx >= 0.22",
-    "feedparser >= 6",
-    "rich >= 11.1.0",
-    "pydantic > 2",
-    "pydantic-settings",
-    "typer >= 0.4",
-    "click",
-    "unidecode",
-    "jinja2"
-]
+dependencies = [ "httpx>=0.28.1,<0.29", "feedparser>=6.0.11,<7", "rich>=14.0.0,<15", "pydantic>=2.10.6,<3", "pydantic-settings>=2.9.1,<3", "typer>=0.15.2,<0.16", "click>=8.1.8,<9", "unidecode>=1.3.8,<2", "jinja2>=3.1.6,<4", "pygrocy2>=2.4.0,<3"]
 
 [project.optional-dependencies]
 test = [
@@ -71,3 +57,32 @@ testpaths = "tests"
 filterwarnings = [
     "ignore::DeprecationWarning:pydantic",
 ]
+
+[tool.pixi.workspace]
+channels = [
+  "https://prefix.dev/pixi-build-backends",
+  "https://prefix.dev/conda-forge",
+]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
+preview = ["pixi-build"]
+
+[tool.pixi.package]
+name = "kptnkcook"
+version = "0.1.0"
+
+[tool.pixi.package.build]
+backend = { name = "pixi-build-python", version = "0.1.*" }
+channels = [
+  "https://prefix.dev/pixi-build-backends",
+  "https://prefix.dev/conda-forge",
+]
+
+[tool.pixi.package.host-dependencies] 
+hatchling = "*"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.hatch.version]
+path = "kptncook/__init__.py"
